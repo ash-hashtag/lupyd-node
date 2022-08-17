@@ -1,4 +1,4 @@
-import {createConnection} from 'mysql2/promise';
+import { createConnection } from 'mysql2/promise';
 import { fastify } from "fastify";
 import { config } from 'dotenv';
 config();
@@ -8,11 +8,41 @@ app.get("/", (req, res) => {
     res.send("Hello");
 })
 
+let cache = [];
+
 app.get("/users/:user/:like", (req, res) => {
-    const query = req.params.like === "true" ? `select _name, bio, frnd from users where _name like '%${req.params.user}%' limit 10` : `select _name, bio, frnd from users where _name = '${req.params.user}' limit 1`;
-    pool.execute(query)
-    .then(([row]) => res.send(row))
-    .catch((_) => res.status(500).send());
+    if (req.params.like === "true") {
+        pool.execute(`SELECT _name, bio, frnd FROM users WHERE _name like '%${req.params.user}%' LIMIT 10`)
+            .then(([rows]) => { 
+                res.send(rows); 
+                cacheRequests(rows); })
+            .catch((_) => res.status(500).send());
+    } else {
+        const row = cache.find((_row) => _row._name === req.params.user);
+        if (row) {
+            res.send([row]);
+        } else {
+            pool.execute(`SELECT _name, bio, frnd FROM users WHERE _name = '${req.params.user}' LIMIT 1`)
+                .then(([rows]) => { 
+                    res.send(rows); 
+                    cacheRequests(rows); })
+                .catch((_) => res.status(500).send());
+        }
+    }
 })
+
+async function cacheRequests(rows) {
+    rows.forEach(row => {
+        const index = cache.indexOf((e) => e._name === row._name)
+        if (index == -1) {
+            cache.push(row);
+        } else {
+            cache[index] = row;
+        }
+        if (cache.length > 1000) {
+            cache = cache.slice(500);
+        }
+    });
+}
 
 app.listen({ port: 3000, host: "0.0.0.0" }).then(console.log);

@@ -22,7 +22,7 @@ app.get("/users/:user/:like", (req, res) => {
         if (row) {
             res.send([row]);
         } else {
-            pool.execute(`SELECT _name, bio, frnd FROM users WHERE _name = '${req.params.user}' LIMIT 1`)
+            pool.execute(`SELECT bio, frnd FROM users WHERE _name = '${req.params.user}' LIMIT 1`)
                 .then(([rows]) => { 
                     res.send(rows); 
                     cacheRequests(rows); })

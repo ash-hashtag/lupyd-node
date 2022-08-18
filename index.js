@@ -34,7 +34,6 @@ app.get("/users/:user/:like", (req, res) => {
 })
 
 async function cacheRequests(rows) {
-    cache.
         rows.forEach(row => {
             const index = cache.indexOf((e) => e._name === row._name)
             if (index == -1) {
